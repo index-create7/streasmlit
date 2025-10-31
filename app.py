@@ -71,7 +71,18 @@ def extract_track_id(url_or_uri):
 def download_image_to_bytes(url):
     r = requests.get(url, timeout=12, stream=True)
     r.raise_for_status()
-    return r.content
+    content_type = r.headers.get("Content-Type", "")
+    # 自动推断扩展名
+    if "jpeg" in content_type:
+        ext = "jpg"
+    elif "png" in content_type:
+        ext = "png"
+    elif "webp" in content_type:
+        ext = "webp"
+    else:
+        ext = "jpg"
+    return r.content, ext
+
 
 if spotify_url:
     st.info("开始尝试获取封面...")
@@ -101,12 +112,11 @@ if spotify_url:
         st.error("无法获取封面。请检查链接或配置 SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET。")
     else:
         try:
-            img_bytes = download_image_to_bytes(cover_url)
+            img_bytes, ext = download_image_to_bytes(cover_url)
             st.image(img_bytes, caption="封面预览", use_column_width=True)
-            # prepare download
-            suffix = cover_url.split("?")[0].split(".")[-1]
-            filename = f"spotify_cover.{suffix}"
-            st.download_button("下载封面", data=img_bytes, file_name=filename, mime=f"image/{suffix}")
+            filename = f"spotify_cover.{ext}"
+            st.download_button("下载封面", data=img_bytes, file_name=filename, mime=f"image/{ext}")
             st.write("封面来源 URL：", cover_url)
         except Exception as e:
             st.error(f"下载或显示图片失败: {e}")
+
